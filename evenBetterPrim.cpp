@@ -428,7 +428,7 @@ void baryWeights(float x1, float x2, float x3, float y1, float y2, float y3, flo
 	storage[2] = 1 - storage[0] - storage[1];
 }
 
-void baryBoxTri(int32_t* buffer, float* zBuffer, struct vertice points[3])
+void baryBoxTri(uint32_t* buffer, float* zBuffer, struct vertice points[3])
 {
 	float tempz;
 	struct vector4 tempColor;
