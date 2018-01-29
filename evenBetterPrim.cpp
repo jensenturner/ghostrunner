@@ -443,17 +443,17 @@ void baryBoxTri(uint32_t* buffer, float* zBuffer, struct vertice points[3])
 		for (int boxMinY = (int)fMax(floorf(vMin(points[0].pos.y, points[1].pos.y, points[2].pos.y)), 0.0f);
 			boxMinY <= boundMaxY - (boxSize - 1); boxMinY += boxSize)
 		{
-			int boxMaxX = min(boundMaxX, boxMinX + boxSize - 1);
-			int boxMaxY = min(boundMaxY, boxMinY + boxSize - 1);
+			int boxMaxX = fMin(boundMaxX, boxMinX + boxSize - 1);
+			int boxMaxY = fMin(boundMaxY, boxMinY + boxSize - 1);
 			baryWeights(points[0].pos.x, points[1].pos.x, points[2].pos.x, points[0].pos.y, points[1].pos.y, points[2].pos.y, (float)boxMinX, (float)boxMinY, boxBary);
 			baryWeights(points[0].pos.x, points[1].pos.x, points[2].pos.x, points[0].pos.y, points[1].pos.y, points[2].pos.y, (float)boxMinX, (float)boxMaxY, &boxBary[3]);
 			baryWeights(points[0].pos.x, points[1].pos.x, points[2].pos.x, points[0].pos.y, points[1].pos.y, points[2].pos.y, (float)boxMaxX, (float)boxMinY, &boxBary[6]);
 			baryWeights(points[0].pos.x, points[1].pos.x, points[2].pos.x, points[0].pos.y, points[1].pos.y, points[2].pos.y, (float)boxMaxX, (float)boxMaxY, &boxBary[9]);
 			if (boxBary[0] >= 0 && boxBary[1] >= 0 && boxBary[2] >= 0 && boxBary[3] >= 0 && boxBary[4] >= 0 && boxBary[5] >= 0 && boxBary[6] >= 0 && boxBary[7] >= 0 && boxBary[8] >= 0 && boxBary[9] >= 0 && boxBary[10] >= 0 && boxBary[11] >= 0)
 			{
-				for (int yoff = 0; yoff < (min(boxSize + boxMinY, boundMaxY) - boxMinY); yoff++)
+				for (int yoff = 0; yoff < (fMin(boxSize + boxMinY, boundMaxY) - boxMinY); yoff++)
 				{
-					for (int xoff = 0; xoff < (min(boxSize + boxMinX, boundMaxX) - boxMinX); xoff++)
+					for (int xoff = 0; xoff < (fMin(boxSize + boxMinX, boundMaxX) - boxMinX); xoff++)
 					{
 						int tempX = xoff + boxMinX;
 						int tempY = yoff + boxMinY;
