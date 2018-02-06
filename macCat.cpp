@@ -2,7 +2,7 @@
 #include <SDL.h>
 #include <stdio.h>
 #include <iostream>
-//#include <Windows.h>
+//Make sure that Mac.h is right for the OS
 #include <Mac.h>
 #include "cat.h"
 
