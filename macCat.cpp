@@ -477,6 +477,27 @@ struct vector3 screenConvert(struct vector3 vIn)
 	return(temp);
 }
 
+//versions of screen convert for the left and right, split-screen rendering
+struct vector3 screenConvertLeft(struct vector3 vIn)
+{
+	struct vector3 temp;
+
+	temp.x = (vIn.x + 1) / 2 * (((float)SCREEN_WIDTH) / 2 - 1);
+	temp.y = (-vIn.y + 1) / 2 * (SCREEN_HEIGHT - 1);
+	temp.z = (vIn.z + 1) / 2 * (maxDepth - minDepth) + minDepth;
+	return temp;
+}
+
+struct vector3 screenConvertRight(struct vector3 vIn)
+{
+	struct vector3 temp;
+
+	temp.x = (vIn.x + 1) / 2 * (((float)SCREEN_WIDTH) / 2 - 1) + ((float)SCREEN_WIDTH)/2;
+	temp.y = (-vIn.y + 1) / 2 * (SCREEN_HEIGHT - 1);
+	temp.z = (vIn.z + 1) / 2 * (maxDepth - minDepth) + minDepth;
+	return temp;
+}
+
 //rasterizer things
 //float positions for convenience and robustness (read: laziness)
 //using constant screen resolutions should be fine, since both eye buffers will have same max x and y
@@ -622,6 +643,18 @@ int main(int argc, char* args[])
 	struct vector3 screenLR = { 8 * 16 / 2, -8 * 9 / 2, -100 };
 	struct vector3 screenUL = { -8 * 16 / 2, 8 * 9 / 2, -100 };
 	struct vector3 eyePos = { 0, 0, 0 };
+	
+	struct vector3 smallLL = { -4 * 16 / 2, -8 * 9 / 2, -100 };
+	struct vector3 smallLR = { 4 * 16 / 2, -8 * 9 / 2, -100 };
+	struct vector3 smallUL = { -4 * 16 / 2, 8 * 9 / 2, -100 };
+
+	struct vector3 leftEye = { -2, 0, 0 };
+	float leftNear[4];
+	struct mat4 leftMat = asymFrust(smallLL, smallLR, smallUL, leftEye, minDepth, maxDepth, leftNear);
+	struct vector3 rightEye = { 2, 0, 0 };
+	float rightNear[4];
+	struct mat4 rightMat = asymFrust(smallLL, smallLR, smallUL, rightEye, minDepth, maxDepth, rightNear);
+	
 	//asymFrust writes to this for view-space culling info (right, left, top, down)
 	float nearBounds[4];
 	struct mat4 proMat = asymFrust(screenLL, screenLR, screenUL, eyePos, minDepth, maxDepth, nearBounds);
@@ -869,12 +902,22 @@ int main(int argc, char* args[])
 			//now try to cull the triangle (backface, then eye-space x, y and z frustum culling)
 			if (visible)
 			{
-				if (cullTri(tempTri[0].pos, tempTri[1].pos, tempTri[2].pos, nearBounds))
+				//render split-screen, left eye on the left, right eye on the right
+				struct vector3 eyeTri[3] = { tempTri[0].pos, tempTri[1].pos, tempTri[2].pos };
+				if (cullTri(eyeTri[0], eyeTri[1], eyeTri[2], leftNear))
 				{
 					//now convert from eye space to screen space
-					tempTri[0].pos = screenConvert(project(tempTri[0].pos, proMat));
-					tempTri[1].pos = screenConvert(project(tempTri[1].pos, proMat));
-					tempTri[2].pos = screenConvert(project(tempTri[2].pos, proMat));
+					tempTri[0].pos = screenConvertLeft(project(eyeTri[0], leftMat));
+					tempTri[1].pos = screenConvertLeft(project(eyeTri[1], leftMat));
+					tempTri[2].pos = screenConvertLeft(project(eyeTri[2], leftMat));
+					baryBoxTri(gPixels, zBuffer, tempTri);
+				}
+				if (cullTri(eyeTri[0], eyeTri[1], eyeTri[2], rightNear))
+				{
+					//now convert from eye space to screen space
+					tempTri[0].pos = screenConvertRight(project(eyeTri[0], rightMat));
+					tempTri[1].pos = screenConvertRight(project(eyeTri[1], rightMat));
+					tempTri[2].pos = screenConvertRight(project(eyeTri[2], rightMat));
 					baryBoxTri(gPixels, zBuffer, tempTri);
 				}
 			}
