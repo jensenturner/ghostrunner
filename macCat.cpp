@@ -35,10 +35,27 @@ const float cmperpix = 31.0f/3200.0f;
 //is cut off at this value and scaled
 const float maxRadiance = 100.0f;
 
+char* path = "path.txt";
+
 //IMPORTANT: don't rely on these buffers being public. might become local when a second eye is introduced
 Uint32* gPixels = new Uint32[SCREEN_WIDTH*SCREEN_HEIGHT];
 float* zBuffer = new float[SCREEN_WIDTH*SCREEN_HEIGHT];
 
+//temporary global variables for loading new parameters for phone position
+double tempPhoneLat;
+double tempPhoneLon;
+double tempPhonePitch;
+double tempPhoneRoll;
+double tempPhoneYaw;
+
+void updateParameters(double lat, double lon, double pitch, double roll, double yaw)
+{
+	tempPhoneLat = lat;
+	tempPhoneLon = lon;
+	tempPhonePitch = pitch;
+	tempPhoneRoll = roll;
+	tempPhoneYaw = yaw;
+}
 
 //SDL functions for stuff (close also destroys gPixels and zBuffer)
 bool init()
@@ -676,7 +693,7 @@ int main(int argc, char* args[])
 	struct vector3 modelRot = {0, 0, 0};
 	float camSpeed = 745.0f;
 	float camRotSpeed = 0.7f;
-	float catSpeed = 0.0f;
+	float catSpeed = 300.0f;
 	struct mat4 modelMat;
 	struct mat4 eyeMat;
 
@@ -691,13 +708,17 @@ int main(int argc, char* args[])
 	double* rawGPSlon = new double[numPoints];
 
 	//load them or something
-	FILE* fp = fopen("C:\\Users\\xande\\Desktop\\path.txt", "r");
+	FILE* fp = fopen(path, "r");
 	for (int k = 0; k < numPoints; k++)
 	{
 		fscanf(fp, "%lf, %lf", &(rawGPSlat[k]), &(rawGPSlon[k]));
 		//printf("%f %f", rawGPSlat[k], rawGPSlon[k]);
 	}
 	fclose(fp);
+	
+	//the user's initial position will act as the origin
+	double originRawLat = tempPhoneLat;
+	double originRawLon = tempPhoneLon;
 
 	///numPoints is the max number of unique coordinates
 	//the gps data will probably be a bit messed up, so realPointNum should be used instead later
@@ -705,7 +726,8 @@ int main(int argc, char* args[])
 	float pathDistances[numPoints - 1];
 	float totalDistance = 0;
 	int realPointNum = 1;
-	pathCoords[0] = { 0, 0, 0};
+	pathCoords[0] = { (rawGPSlon[0] - originRawLon)*3.1415*earthR*cos((rawGPSlat[0] + originRawLat) * 3.1415 / 180.0 / 100)/180.0/10.0,
+			 0, (rawGPSlat[0] - originRawLat)/100.0*3.1415*earthR / 180.0};
 	for (int i = 1; i < numPoints; i++)
 	{
 		double tempZoff = (rawGPSlat[i] - rawGPSlat[i - 1])/100.0*3.1415*earthR / 180.0;
@@ -806,6 +828,14 @@ int main(int argc, char* args[])
 			camPos.x += cos(camRot.y)*camSpeed*deltaT;
 			camPos.z += sin(camRot.y)*camSpeed*deltaT;
 		}
+		
+		//bypass keyboard interactions to get the camera coordinates
+		//hopefully updateParameters has been called by here
+		camRot.x = tempPhonePitch;
+		camRot.y = tempPhoneYaw;
+		camRot.z = tempPhoneRoll;
+		camPos.x = (tempPhoneLon - originRawLon)*3.1415*earthR*cos((tempPhoneLat + originRawLat) * 3.1415 / 180.0 / 100)/180.0/10.0;
+		camPos.z = (tempPhoneLat - originRawLat)/100.0*3.1415*earthR / 180.0;
 
 
 		//application stuff (positions, rotations, etc.)
